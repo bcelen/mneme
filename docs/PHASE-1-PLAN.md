@@ -58,6 +58,17 @@ Specify a separately approved, staged dry run for a small, user-selected real-da
 
 Phase 1 is complete only when the plan and relevant decisions are accepted, the synthetic test corpus and acceptance criteria are ready, security and privacy risks have owners or explicit deferrals, and no unapproved implementation or real-data action has occurred.
 
+## Planning deliverables
+
+- [Metadata-Only Source Inventory](phase-1/SOURCE-INVENTORY.md)
+- [Preservation-Contract Requirements](phase-1/PRESERVATION-CONTRACT.md)
+- [Synthetic Test-Corpus Design](phase-1/SYNTHETIC-TEST-CORPUS.md)
+- [Acceptance-Test Matrix](phase-1/ACCEPTANCE-TEST-MATRIX.md)
+- [Security and Privacy Threat Register](phase-1/SECURITY-PRIVACY-THREAT-REGISTER.md)
+- [Implementation-Stack Comparison Framework](phase-1/STACK-COMPARISON-FRAMEWORK.md)
+
+These artifacts were accepted on 2026-09-17. They do not authorize implementation or real-data access.
+
 ## Out of scope
 
 Application code, dependencies, infrastructure, Docker configuration, implementation-stack selection, provider authentication, external-account access, real correspondence inspection or import, AI processing of real data, production deployment, and sending email.
