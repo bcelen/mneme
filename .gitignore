@@ -1,0 +1,33 @@
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+.credentials/
+.mneme-secrets/
+
+# Application and tooling state
+.venv/
+venv/
+node_modules/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+.DS_Store
+
+# Explicitly local/private data and generated artifacts. Keep project and test
+# fixtures visible unless they are placed in one of these named directories.
+.mneme-local/
+.mneme-data/
+.mneme-backups/
+.mneme-generated/
+.mneme-tmp/
+*.log
+*.sqlite-wal
+*.sqlite-shm
+
+# OS metadata and editor swap files
+*.swp
