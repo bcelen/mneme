@@ -3,7 +3,11 @@
 **Status:** Accepted
 **Review date:** 2026-09-18
 **Request date:** 2026-09-18
-**Current authority:** R3-G2 only under this accepted request. Host/path, extraction, execution, and graph authority is temporary and limited to the boundaries below.
+**Workstream result:** Incomplete
+**Result review date:** 2026-09-18
+**Current authority:** Closed. The accepted request was executed only through the bounded literal metadata acquisition, then stopped because checksum-database signature and Merkle-proof verification was not proved. No retry, remediation route, graph work, or later-stage authority remains active.
+
+The accepted evidence is recorded in [the R3-G2 evidence summary](r3-g2/README.md) and [stop record](r3-g2/STOP-RECORD.md). The authorization remains accepted as the governing boundary; `Incomplete` is the outcome of the workstream, not a withdrawal of that authorization.
 
 ## Decision requested
 
