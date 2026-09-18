@@ -1,0 +1,10 @@
+path	bytes	sha256	owner	p2_item	review_role
+README.md	3466	96a65ee7f6cbaa971a9d74b7568b0509fea6e0d7fbed6a5e7e918f01b2a69292	planner-owned	P2-01	boundary-documentation
+cmd/mneme-r3-g2-tile-plan/main.go	157	877e86645cc8c6409d8da52e118ef25e0643b9e3cad15283b85d4abe555152b9	planner-owned	P2-01	process-entrypoint
+go.mod	59	611f1b084ded3e5c0014d7f420d05c58b88e2bb727fb1fa792feccd29541e742	planner-owned	P2-01	local-module-boundary
+internal/planner/model.go	3101	d8013d415fb6a5ebaa97fbf941d8d052939293082d7bfc316f6f480b168766c4	planner-owned	P2-01	models-and-caps
+internal/planner/output.go	11080	fbf2f12b6b0ff23ddcb572c3d0977c62084a497d60ef9aca08942520215cd66b	planner-owned	P2-01	deterministic-output-contract
+internal/planner/parse.go	12141	53f26895106925427dee249c7c1185c9ce5ca48966a06a0b31266989a6d46c31	planner-owned	P2-01	bounded-structural-parser
+internal/planner/plan.go	12659	8fe2ffb4d72cc093df0182db5a6493867490630ebe0a963657ea37a275bb1d72	planner-owned	P2-01	operation-and-tile-planning
+internal/planner/run.go	3131	52f28b368995b6389231e407196f6c9998bde869d6da2b76a94f6eabb7fd094c	planner-owned	P2-01	command-and-stop-control
+sourcebundle.go	1685	eb12878efda8b7099885b7b979fb8d06a2eed5b307b6f426b2f3e645ce6740ec	planner-owned	P2-01	embedded-source-provenance
