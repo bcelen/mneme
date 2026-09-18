@@ -3,7 +3,9 @@
 **Status:** Accepted
 **Review date:** 2026-09-18
 **Request date:** 2026-09-18
-**Current authority:** R3-G1 only under this accepted request. Host/path permission is temporary and limited to the one authorized archive GET.
+**Current authority:** Completed. The result is accepted as `Verified archive bytes`; no further network, extraction, execution, module, or later-stage authority remains.
+**Result review date:** 2026-09-18
+**Evidence:** [Accepted R3-G1 evidence summary](r3-g1/README.md)
 
 ## Decision requested
 
