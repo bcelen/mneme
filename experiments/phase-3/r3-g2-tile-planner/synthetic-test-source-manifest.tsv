@@ -1,0 +1,8 @@
+path	bytes	sha256	owner	p2_item	review_role
+internal/planner/output_test.go	6641	d1bc78ae8b7d36c41889e33600eb13e6da789d5ccad4665e9394c1c857169093	planner-test-owned	P2-03	output-schema-name-uniqueness-incomplete-marker-normalization-provenance-and-determinism-tests
+internal/planner/parse_test.go	7061	24baf24350457f4ca335e9de63b54969ddd8dc2122186834a46d11661be9f359	planner-test-owned	P2-03	structural-parser-input-identity-manifest-hostile-byte-path-size-and-envelope-tests
+internal/planner/plan_test.go	9297	a72e685c4befae19992c683ce70cee47b4270118ddbc545c96e4d5da1b3c6de5	planner-test-owned	P2-03	head-operation-tile-fallback-cap-sentinel-and-save-tiles-tests
+internal/planner/run_test.go	5012	e8d3e93cfedda7a1717b6328ee05ffbf7c1ff2538c0b9915efd2bfded557a30e	planner-test-owned	P2-03	flag-cap-exit-environment-input-and-output-root-tests
+internal/planner/test_helpers_test.go	9575	0cbbb75834f9124a94fe76fe6eb4085b320ed73fe8d5a99d860af9367828a085	planner-test-owned	P2-03	synthetic-constructors-bounded-case-loader-temporary-input-writer-and-negative-helpers
+sourcebundle_test.go	3449	a368dfd289b8e182b9a73666a41897231dc8c386280cde5e22d0f86b0b5b6619	planner-test-owned	P2-03	deterministic-embedded-source-provenance-and-license-classification
+testdata/synthetic/cases.json	10038	b162f0d1cf8e00ec3b44b3bb3562076eb10c6918591e9b4c2750298c8fd06412	planner-test-owned	P2-03	declarative-accepted-35-case-inventory
