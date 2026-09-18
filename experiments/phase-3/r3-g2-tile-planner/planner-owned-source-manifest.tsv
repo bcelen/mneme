@@ -7,4 +7,4 @@ internal/planner/output.go	11080	fbf2f12b6b0ff23ddcb572c3d0977c62084a497d60ef9ac
 internal/planner/parse.go	12141	53f26895106925427dee249c7c1185c9ce5ca48966a06a0b31266989a6d46c31	planner-owned	P2-01	bounded-structural-parser
 internal/planner/plan.go	12659	8fe2ffb4d72cc093df0182db5a6493867490630ebe0a963657ea37a275bb1d72	planner-owned	P2-01	operation-and-tile-planning
 internal/planner/run.go	3131	52f28b368995b6389231e407196f6c9998bde869d6da2b76a94f6eabb7fd094c	planner-owned	P2-01	command-and-stop-control
-sourcebundle.go	1685	eb12878efda8b7099885b7b979fb8d06a2eed5b307b6f426b2f3e645ce6740ec	planner-owned	P2-01	embedded-source-provenance
+sourcebundle.go	2456	5dc8a7636a42b2361c77010537cc5dd8d35f2a63d609c5b68154506d768eb76a	planner-owned	P2-01	embedded-source-provenance

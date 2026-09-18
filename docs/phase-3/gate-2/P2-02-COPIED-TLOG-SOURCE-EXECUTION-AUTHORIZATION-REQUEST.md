@@ -3,8 +3,11 @@
 **Status:** Accepted
 **Request date:** 2026-09-18
 **Review date:** 2026-09-18
-**Execution readiness:** Authorized only for the exact bounded P2-02 workstream after this document is committed; P2-02 evidence remains unaccepted until later review
-**Current authority:** One offline archive revalidation, four literal member reads and copies, exactly seven repository-path changes, required integrity evidence, and stop for review; no Go invocation, build, test, planner execution, retained-input read, verifier, key, network action, P2-03 work, implementation commit, or push is authorized
+**Result review date:** 2026-09-18
+**P2-02 result:** Accepted as complete
+**Evidence root:** `/tmp/mneme-phase3-p2-02.Ei4M6A`
+**Execution readiness:** Completed; the bounded P2-02 workstream has stopped
+**Current authority:** No further P2-02 execution authority remains; no Go invocation, build, test, planner execution, retained-input read, verifier, key, network action, P2-03 execution, or push is authorized
 **Accepted planning decision:** [P2-02 copied transparency-log source proposal](P2-02-COPIED-TLOG-SOURCE-PROPOSAL.md), commit `48c4fbf`
 **Accepted predecessor:** P2-01 planner-owned source, commit `01a86b3`
 
@@ -290,3 +293,37 @@ The authorization becomes executable only after this Accepted document is commit
 The review accepted the exact archive and member identities, provenance and license proof chain, seven-path repository boundary, minimal source-embedding and manifest-classification edits, command and staging limits, evidence requirements, specialist reviews, stop conditions, rollback, and explicit execution boundary.
 
 Acceptance authorizes execution only after this document's commit. It does not accept the resulting files or evidence. The workstream must stop after producing the seven-path diff and complete evidence package; P2-03 and all later work remain closed.
+
+## Accepted execution result
+
+The user accepted the P2-02 execution result as complete on 2026-09-18. The accepted result consists of exactly five added paths and two modified paths:
+
+| Path | Change | Accepted identity or boundary |
+|---|---|---|
+| `experiments/phase-3/r3-g2-tile-planner/internal/tlog/note.go` | Added | 3,931 bytes; SHA-256 `c1d9ff098f27aab7d354385795f175a4bc0f05c46e3c37f3b3e2223f44b76236` |
+| `experiments/phase-3/r3-g2-tile-planner/internal/tlog/tile.go` | Added | 14,296 bytes; SHA-256 `2eb6a68b3e9f39a2926b201c0813cf2c67a1465aabc4bd88fcb310437e16bc6a` |
+| `experiments/phase-3/r3-g2-tile-planner/internal/tlog/tlog.go` | Added | 18,552 bytes; SHA-256 `c4bb27943a3ec8ea08ae2e0325259dc2707132ab7295d16bd3d238ba699ec628` |
+| `experiments/phase-3/r3-g2-tile-planner/LICENSES/golang.org-x-mod-BSD-3-Clause.txt` | Added | 1,453 bytes; SHA-256 `911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad` |
+| `experiments/phase-3/r3-g2-tile-planner/copied-tlog-manifest.tsv` | Added | SHA-256 `4e75011ceafa397b0bdf670c1867cfcc18aab5c25d3207ea0c74cabea501062d` |
+| `experiments/phase-3/r3-g2-tile-planner/sourcebundle.go` | Modified | Exact embed expansion and deterministic copied-source/license provenance classification only; SHA-256 `5dc8a7636a42b2361c77010537cc5dd8d35f2a63d609c5b68154506d768eb76a` |
+| `experiments/phase-3/r3-g2-tile-planner/planner-owned-source-manifest.tsv` | Modified | Only the `sourcebundle.go` row changed; SHA-256 `31e9f4e9dd729fb8f67796ee901662a3a2a4e5e742860a103ee0e48bb19d0e84` |
+
+All four copied files match the accepted archive members by literal path, byte count, SHA-256, and exact byte comparison. The source archive remained unchanged at 68,100,347 bytes with SHA-256 `ee215d57e0ec269c60cc9ceca68e6bda321ba9ee5afe24f4b0988703c2d87d12`. The complete owner-only evidence remains under the recorded evidence root.
+
+### Accepted `realpath` anomaly and substitute checks
+
+`/usr/bin/realpath`, listed as an optional permitted utility, was absent on the host. It was invoked once, produced no path result, and was not replaced with an unapproved resolver. The review accepted the following substitute evidence as sufficient for this bounded copy:
+
+1. the source and staging roots used the literal accepted and `mktemp`-returned paths;
+2. final-component `stat` evidence recorded directory or regular-file type, owner, mode, inode, and link count;
+3. the accepted source sentinel matched its exact 357-byte identity and SHA-256 `a1d4a5fe474fb81fc5228ea8cb7daab436837d83a44b012edba81b0617115029`;
+4. the P2-02 staging sentinel was owner-only and tied to authorization commit `3cff57fe6885f47b579ad1ece6a4b0cf70216066`;
+5. neither the source root nor staging root had a matching mount entry;
+6. the archive matched its exact path, regular-file type, owner, mode, link count, byte count, and accepted SHA-256 before and after the copy; and
+7. every literal member, staged file, and repository destination reconciled by type, byte count, SHA-256, and exact byte comparison.
+
+This acceptance is specific to P2-02 and does not establish a general replacement for future realpath controls. Any later gate must define and review its own path-identity evidence.
+
+### Gate effect
+
+P2-02 is complete as an implementation-review prerequisite. This result does not authorize P2-03 execution, P2-04, P3, P4, retained-input access, Go invocation, build, test, planner execution, verifier or key use, network access, dependency changes, `go.sum`, graph commands, R3-O1, or stack selection.
