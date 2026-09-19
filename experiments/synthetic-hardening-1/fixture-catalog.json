@@ -1,0 +1,132 @@
+{
+  "catalog_version": 1,
+  "data_boundary": "wholly fictional synthetic EML; no real correspondence",
+  "fixtures": [
+    {
+      "byte_count": 351,
+      "expected_status": "indexed",
+      "expected_warnings": [],
+      "features": ["lf", "7bit"],
+      "filename": "01-plain-lf-7bit.eml",
+      "fixture_id": "EML-001",
+      "sha256": "befec305981577844c8b233135125394886ffc26d7dedf589bbb152a0d51f208"
+    },
+    {
+      "byte_count": 365,
+      "expected_status": "indexed",
+      "expected_warnings": [],
+      "features": ["crlf", "8bit", "unicode"],
+      "filename": "02-unicode-crlf-8bit.eml",
+      "fixture_id": "EML-002",
+      "sha256": "82a6bba4ab0b7cb5c29b8db4ec6c755d0e6f5694e4ab7a3f4f28ba5298e0f23a"
+    },
+    {
+      "byte_count": 422,
+      "expected_status": "indexed",
+      "expected_warnings": [],
+      "features": ["quoted-printable", "folded-header", "encoded-word"],
+      "filename": "03-quoted-printable.eml",
+      "fixture_id": "EML-003",
+      "sha256": "855df1de395bcda3f1b49f7951573b85d5462ab5643240732c76e69301c995a7"
+    },
+    {
+      "byte_count": 352,
+      "expected_status": "indexed",
+      "expected_warnings": [],
+      "features": ["base64"],
+      "filename": "04-base64-body.eml",
+      "fixture_id": "EML-004",
+      "sha256": "7afcd03a25c0ca3b6af942916f7179ea6d8b246173739ebb5b3ef620220da121"
+    },
+    {
+      "byte_count": 351,
+      "expected_status": "indexed",
+      "expected_warnings": [],
+      "features": ["exact-duplicate"],
+      "filename": "05-exact-duplicate.eml",
+      "fixture_id": "EML-005",
+      "sha256": "befec305981577844c8b233135125394886ffc26d7dedf589bbb152a0d51f208"
+    },
+    {
+      "byte_count": 366,
+      "expected_status": "indexed",
+      "expected_warnings": [],
+      "features": ["message-id-duplicate", "quoted-printable"],
+      "filename": "06-message-id-duplicate.eml",
+      "fixture_id": "EML-006",
+      "sha256": "b6fe2178d33445a52b8b4f09fcc5c65483876df6a1ef2c5c8eb8e57b3b75bda2"
+    },
+    {
+      "byte_count": 938,
+      "expected_status": "indexed_with_warnings",
+      "expected_warnings": ["attachment-content-type-mismatch", "duplicate-attachment-name", "unsafe-attachment-name"],
+      "features": ["attachments", "unsafe-filename", "duplicate-filename"],
+      "filename": "07-attachments.eml",
+      "fixture_id": "EML-007",
+      "sha256": "78e93f0ac3c122e9ad38c3f74ff89bb25704ec531deebdd44c83d3c92c07bbd0"
+    },
+    {
+      "byte_count": 851,
+      "expected_status": "indexed_with_warnings",
+      "expected_warnings": ["html-inert"],
+      "features": ["html", "remote-resource", "active-content"],
+      "filename": "08-hostile-html.eml",
+      "fixture_id": "EML-008",
+      "sha256": "5858ca7dcc5ad2b5eb7b13a4785c483f8a7d88115eff67aa357154244ebb3726"
+    },
+    {
+      "byte_count": 360,
+      "expected_status": "indexed_with_warnings",
+      "expected_warnings": ["duplicate-header:subject", "invalid-date", "malformed-encoded-word", "missing-header:message-id"],
+      "features": ["duplicate-header", "missing-message-id", "invalid-date", "malformed-encoded-word"],
+      "filename": "09-malformed-headers.eml",
+      "fixture_id": "EML-009",
+      "sha256": "2027ede28398f83f6381418717cf186532d2d81425ac4af3461ae964e12cae1a"
+    },
+    {
+      "byte_count": 342,
+      "expected_status": "quarantined",
+      "expected_warnings": [],
+      "features": ["malformed-mime", "missing-close-boundary"],
+      "filename": "10-broken-boundary.eml",
+      "fixture_id": "EML-010",
+      "sha256": "79f58a4ca1dd972a93717074b41c8952f4ea929aaeecded0b7201c7ccd8f55f2"
+    },
+    {
+      "byte_count": 370,
+      "expected_status": "quarantined",
+      "expected_warnings": [],
+      "features": ["controlled-parser-failure"],
+      "filename": "11-controlled-parser-failure.eml",
+      "fixture_id": "EML-011",
+      "sha256": "5ec3b1c6783e095a33144bd9dc4aeb6885e61a7a674f0b4bf3ee0536d105039f"
+    },
+    {
+      "byte_count": 347,
+      "expected_status": "indexed_with_warnings",
+      "expected_warnings": ["unknown-charset:x-mneme-unknown"],
+      "features": ["unknown-charset"],
+      "filename": "12-unknown-charset.eml",
+      "fixture_id": "EML-012",
+      "sha256": "4c98f370962a9d85b667be9d9ec084e5ad5f5775ba54840cdcb5ad61f938d299"
+    },
+    {
+      "byte_count": 666,
+      "expected_status": "quarantined",
+      "expected_warnings": [],
+      "features": ["excessive-nesting"],
+      "filename": "13-excessive-nesting.eml",
+      "fixture_id": "EML-013",
+      "sha256": "0aa7ed1418d120e07021cd7a763f1ca5710770f6791c88c534e36fd9ae2531ea"
+    },
+    {
+      "byte_count": 312,
+      "expected_status": "quarantined",
+      "expected_warnings": [],
+      "features": ["invalid-transfer-encoding"],
+      "filename": "14-invalid-base64.eml",
+      "fixture_id": "EML-014",
+      "sha256": "12a994c79683eea8db343d6254d50b17ced5ece971a8acf48a828a80a9e7211f"
+    }
+  ]
+}
