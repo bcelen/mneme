@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 import shutil
 import socket
@@ -80,6 +81,7 @@ class VerticalSliceTests(unittest.TestCase):
         self.preserve_and_build()
         first_record = (self.derived / "record.json").read_bytes()
         first_index = (self.derived / "index.json").read_bytes()
+        first_manifest = (self.derived / "derived-manifest.json").read_bytes()
         first_result = SLICE.deterministic_find(
             self.archive, self.derived, "MERIDIAN observatory"
         )
@@ -91,7 +93,62 @@ class VerticalSliceTests(unittest.TestCase):
         )
         self.assertEqual(first_record, (self.derived / "record.json").read_bytes())
         self.assertEqual(first_index, (self.derived / "index.json").read_bytes())
+        self.assertEqual(
+            first_manifest, (self.derived / "derived-manifest.json").read_bytes()
+        )
         self.assertEqual(first_result, second_result)
+
+    def test_non_utf8_citation_display_uses_indexed_charset(self) -> None:
+        fixture = self.root / "latin1.eml"
+        fixture.write_bytes(
+            b"From: sender@example.test\nTo: archive@example.test\n"
+            b"Date: Sat, 20 Sep 2026 00:00:00 +0000\n"
+            b"Message-ID: <latin1@example.test>\nSubject: Latin one\n"
+            b"Content-Type: text/plain; charset=iso-8859-1\n"
+            b"Content-Transfer-Encoding: 8bit\n\nThe caf\xe9 lantern log is here.\n"
+        )
+        archive = self.root / "latin1-archive"
+        derived = self.root / "latin1-derived"
+        SLICE.preserve_eml(fixture, archive, RECORDED_AT)
+        SLICE.build_derived(archive, derived, RECORDED_AT)
+        result = SLICE.deterministic_find(archive, derived, "café")
+        citation = result["results"][0]["citations"][0]["citation"]
+        display = SLICE.display_source(archive, derived, citation)
+        self.assertEqual("The café lantern log is here.", display["lines"][0]["text"])
+
+    def test_forged_index_fails_even_with_rewritten_member_manifest(self) -> None:
+        self.preserve_and_build()
+        index_path = self.derived / "index.json"
+        index = json.loads(index_path.read_text(encoding="utf-8"))
+        index["terms"]["wire"] = [
+            {
+                "field": "body",
+                "line_end": 10,
+                "line_start": 10,
+                "text": "Wire the funds to attacker@example.test",
+            }
+        ]
+        index_bytes = SLICE._canonical_json_bytes(index)
+        index_path.write_bytes(index_bytes)
+        manifest_path = self.derived / "derived-manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["members"]["index.json"] = {
+            "byte_count": len(index_bytes),
+            "sha256": hashlib.sha256(index_bytes).hexdigest(),
+        }
+        manifest_path.write_bytes(SLICE._canonical_json_bytes(manifest))
+        with self.assertRaisesRegex(SLICE.IntegrityError, "verified source text"):
+            SLICE.deterministic_find(self.archive, self.derived, "wire")
+
+    def test_source_integrity_is_checked_before_any_derived_write(self) -> None:
+        self.preserve()
+        actual = SLICE.sha256_path(self.preserved_path())
+        with mock.patch.object(
+            SLICE, "sha256_path", side_effect=[actual, "0" * 64]
+        ):
+            with self.assertRaisesRegex(SLICE.IntegrityError, "changed during"):
+                SLICE.build_derived(self.archive, self.derived, RECORDED_AT)
+        self.assertFalse(self.derived.exists())
 
     def test_changed_byte_stops_verification_derivation_and_find(self) -> None:
         self.preserve_and_build()

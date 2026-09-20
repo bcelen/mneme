@@ -108,8 +108,22 @@ func buildHeads(responses []parsedResponse, maxHeads int) ([]head, error) {
 	}
 	heads := make([]head, 0, len(byKey))
 	for _, item := range byKey {
-		sort.Strings(item.SourceInputIDs)
-		sort.Strings(item.SignedNoteHashes)
+		type sourceNote struct {
+			inputID string
+			hash    string
+		}
+		pairs := make([]sourceNote, len(item.SourceInputIDs))
+		for index := range item.SourceInputIDs {
+			pairs[index] = sourceNote{
+				inputID: item.SourceInputIDs[index],
+				hash:    item.SignedNoteHashes[index],
+			}
+		}
+		sort.Slice(pairs, func(i, j int) bool { return pairs[i].inputID < pairs[j].inputID })
+		for index := range pairs {
+			item.SourceInputIDs[index] = pairs[index].inputID
+			item.SignedNoteHashes[index] = pairs[index].hash
+		}
 		heads = append(heads, *item)
 	}
 	sort.Slice(heads, func(i, j int) bool {

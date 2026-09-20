@@ -2,7 +2,9 @@ package planner
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strings"
@@ -45,7 +47,25 @@ func TestParseValidSyntheticResponses(t *testing.T) {
 		if response.Tree.N != 16 || len(response.Signatures) != 1 || response.Signatures[0].DecodedBytes != 68 {
 			t.Fatalf("response %s has unexpected structural result", response.Input.InputID)
 		}
+		body := corpus.Bodies[response.Input.InputID]
+		digest := sha256.Sum256(body[response.RecordSpanStart:response.RecordSpanEnd])
+		if hex.EncodeToString(digest[:]) != response.RecordTextSHA256 {
+			t.Fatalf("response %s record span and digest cover different bytes", response.Input.InputID)
+		}
 	}
+}
+
+func TestParseResponseRejectsUnsafeTreeSize(t *testing.T) {
+	rows, bodies := syntheticRowsAndBodies(t)
+	row := rows[0]
+	body := bytes.Replace(
+		append([]byte{}, bodies[row.InputID]...),
+		[]byte("go.sum database tree\n16\n"),
+		[]byte("go.sum database tree\n4611686018427387904\n"),
+		1,
+	)
+	_, err := parseResponse(row, body)
+	assertErrorContains(t, err, "outside 1..4611686018427387903")
 }
 
 func TestParseResponseRejectsHostileSyntheticStructure(t *testing.T) {

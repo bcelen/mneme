@@ -445,6 +445,12 @@ $case{'HT-038'} = sub {
     Mneme::Handoff::validate_verdict_approval($verdict, $approval, $verdict_bytes);
     my $after = sha256_hex(Mneme::Handoff::canonical_json($verdict) . Mneme::Handoff::canonical_json($approval));
     is($after, $before, fixture_expected('HT-038'));
+    is(
+        caught_code(sub { Mneme::Handoff::decode_git_wait_status(9); }),
+        'E_GIT_SIGNAL',
+        'signal-killed git child fails closed',
+    );
+    is(Mneme::Handoff::decode_git_wait_status(256), 1, 'ordinary git exit status is preserved');
     for my $path (@implementation_paths) {
         is(Mneme::Handoff::sha256_file($path, 262_144), $implementation_before{$path}, "implementation unchanged: $path");
     }

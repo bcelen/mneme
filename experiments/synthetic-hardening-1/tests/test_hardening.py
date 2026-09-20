@@ -53,6 +53,42 @@ class HardeningTests(unittest.TestCase):
             record["source_id"]: record for record in result["messages"]["messages"]
         }
 
+    @staticmethod
+    def synthetic_item(source_id, raw):
+        digest = hashlib.sha256(raw).hexdigest()
+        return {
+            "id": source_id,
+            "sha256": digest,
+            "provenance": {"event_id": f"prov-preserve-{source_id.lower()}"},
+        }
+
+    @staticmethod
+    def deeply_nested_message(levels):
+        chunks = [
+            b"From: nested@example.test\n",
+            b"To: archive@example.test\n",
+            b"Date: Sat, 20 Sep 2026 00:00:00 +0000\n",
+            b"Message-ID: <nested@example.test>\n",
+            b"Subject: Deep synthetic MIME\n",
+            b'Content-Type: multipart/mixed; boundary="b0"\n\n',
+        ]
+        for level in range(levels - 1):
+            chunks.append(f"--b{level}\n".encode("ascii"))
+            chunks.append(
+                f'Content-Type: multipart/mixed; boundary="b{level + 1}"\n\n'.encode(
+                    "ascii"
+                )
+            )
+        chunks.extend(
+            [
+                f"--b{levels - 1}\n".encode("ascii"),
+                b"Content-Type: text/plain; charset=utf-8\n\nbody\n",
+            ]
+        )
+        for level in reversed(range(levels)):
+            chunks.append(f"--b{level}--\n".encode("ascii"))
+        return b"".join(chunks)
+
     def test_fixture_catalog_has_fixed_bytes_hashes_and_expected_truth(self) -> None:
         catalog = json.loads(
             (EXPERIMENT_ROOT / "fixture-catalog.json").read_text(encoding="utf-8")
@@ -150,6 +186,49 @@ class HardeningTests(unittest.TestCase):
         self.assertIn("tracker.example.test", inert)
         self.assertIn("html-inert", record["warnings"])
 
+    def test_hostile_codec_alias_is_quarantined_without_crashing(self) -> None:
+        raw = (
+            b"From: codec@example.test\nTo: archive@example.test\n"
+            b"Date: Sat, 20 Sep 2026 00:00:00 +0000\n"
+            b"Message-ID: <codec@example.test>\nSubject: Hostile codec\n"
+            b'Content-Type: text/plain; charset="hex"\n\n616263\n'
+        )
+        record, occurrences, artifacts = HARDENING._parse_source(
+            self.synthetic_item("EML-900", raw), raw, RECORDED_AT
+        )
+        self.assertEqual("quarantined", record["status"])
+        self.assertIn("not a text codec", record["failure"])
+        self.assertEqual([], occurrences)
+        self.assertEqual({}, artifacts)
+
+    def test_extreme_mime_depth_is_iteratively_bounded_and_quarantined(self) -> None:
+        raw = self.deeply_nested_message(350)
+        self.assertLess(len(raw), HARDENING.MAX_SOURCE_BYTES)
+        record, occurrences, artifacts = HARDENING._parse_source(
+            self.synthetic_item("EML-901", raw), raw, RECORDED_AT
+        )
+        self.assertEqual("quarantined", record["status"])
+        self.assertIn("MIME depth", record["failure"])
+        self.assertEqual([], occurrences)
+        self.assertEqual({}, artifacts)
+
+    def test_attachment_classification_uses_repository_pinned_table(self) -> None:
+        raw = (
+            b"From: attachment@example.test\nTo: archive@example.test\n"
+            b"Date: Sat, 20 Sep 2026 00:00:00 +0000\n"
+            b"Message-ID: <attachment@example.test>\nSubject: Pinned MIME\n"
+            b'Content-Type: multipart/mixed; boundary="pinned"\n\n'
+            b"--pinned\nContent-Type: text/plain; charset=utf-8\n\nbody\n"
+            b"--pinned\nContent-Type: application/octet-stream\n"
+            b"Content-Disposition: attachment; filename=report.stl\n\nsolid\n"
+            b"--pinned--\n"
+        )
+        record, _, _ = HARDENING._parse_source(
+            self.synthetic_item("EML-902", raw), raw, RECORDED_AT
+        )
+        self.assertEqual("model/stl", HARDENING._pinned_attachment_type("report.stl"))
+        self.assertIn("attachment-content-type-mismatch", record["warnings"])
+
     def test_quarantined_failures_create_no_trusted_index_or_artifacts(self) -> None:
         _, _, _, _, derived, result = self.build()
         records = self.records_by_id(result)
@@ -181,11 +260,20 @@ class HardeningTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertGreaterEqual(len(first["results"]), 3)
         citation = first["results"][0]["citations"][0]["citation"]
-        display = HARDENING.display_source(archive, citation)
+        display = HARDENING.display_source(archive, derived_a, citation)
         self.assertEqual("escaped-inert-text-no-fetch", display["display_mode"])
         self.assertIn(display["source_id"], citation)
         self.assertIn(display["source_sha256"], citation)
         self.assertEqual("wholly-fictional-synthetic-fixture", display["provenance"]["source_kind"])
+
+        unindexed = HARDENING._citation(
+            display["source_id"], display["source_sha256"], "header:from:1"
+        )
+        with self.assertRaisesRegex(HARDENING.IntegrityError, "verified index occurrence"):
+            HARDENING.display_source(archive, derived_a, unindexed)
+        malformed = citation.rsplit("#", 1)[0] + "#header:subject:x"
+        with self.assertRaisesRegex(HARDENING.ScopeError, "malformed"):
+            HARDENING.display_source(archive, derived_a, malformed)
 
     def test_complete_export_restore_and_clean_rebuild_reconcile(self) -> None:
         base, _, archive, _, derived, _ = self.build()

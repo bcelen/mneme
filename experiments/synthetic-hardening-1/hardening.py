@@ -10,7 +10,6 @@ import codecs
 import hashlib
 import html
 import json
-import mimetypes
 import os
 import quopri
 import re
@@ -33,9 +32,23 @@ import fixtures
 
 TOOL_NAME = "mneme-synthetic-hardening"
 TOOL_VERSION = "1"
-PROCESSING_RULE = "synthetic-eml-hardening-v1"
+PROCESSING_RULE = "synthetic-eml-hardening-v2"
 MAX_SOURCE_BYTES = 128 * 1024
 MAX_MIME_DEPTH = 4
+PINNED_ATTACHMENT_MIME_TYPES = {
+    ".bin": "application/octet-stream",
+    ".csv": "text/csv",
+    ".eml": "message/rfc822",
+    ".gif": "image/gif",
+    ".jpeg": "image/jpeg",
+    ".jpg": "image/jpeg",
+    ".json": "application/json",
+    ".pdf": "application/pdf",
+    ".png": "image/png",
+    ".stl": "model/stl",
+    ".txt": "text/plain",
+    ".zip": "application/zip",
+}
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+(?:[-'][a-z0-9]+)*")
 CITATION_PATTERN = re.compile(
     r"^mneme-source:(?P<source_id>EML-[0-9]{3})@sha256:"
@@ -265,12 +278,18 @@ def _normalize_tokens(text: str) -> List[str]:
 
 
 def _mime_depth(message: Message) -> int:
-    if not message.is_multipart():
-        return 1
-    payload = message.get_payload()
-    if not isinstance(payload, list) or not payload:
-        return 1
-    return 1 + max(_mime_depth(part) for part in payload)
+    maximum = 0
+    pending = [(message, 1)]
+    while pending:
+        part, depth = pending.pop()
+        maximum = max(maximum, depth)
+        if maximum > MAX_MIME_DEPTH:
+            return maximum
+        if part.is_multipart():
+            payload = part.get_payload()
+            if isinstance(payload, list):
+                pending.extend((child, depth + 1) for child in payload)
+    return maximum
 
 
 def _leaf_parts(message: Message, prefix: Tuple[int, ...] = ()) -> Iterator[Tuple[str, Message]]:
@@ -332,6 +351,10 @@ def _decode_text(part: Message, payload: bytes, warnings: List[str]) -> str:
         return payload.decode("utf-8", errors="replace")
     try:
         return payload.decode(charset, errors="strict")
+    except LookupError as error:
+        raise ControlledParserFailure(
+            f"charset is not a text codec: {charset.lower()}"
+        ) from error
     except UnicodeDecodeError:
         warnings.append(f"decode-replacement:{charset.lower()}")
         return payload.decode(charset, errors="replace")
@@ -368,6 +391,10 @@ def _safe_attachment_name(original: str | None, locator: str) -> str:
     return cleaned or f"attachment-{locator.replace('.', '-')}.bin"
 
 
+def _pinned_attachment_type(filename: str) -> str | None:
+    return PINNED_ATTACHMENT_MIME_TYPES.get(PurePosixPath(filename).suffix.casefold())
+
+
 def _citation(source_id: str, digest: str, locator: str) -> str:
     return f"mneme-source:{source_id}@sha256:{digest}#{locator}"
 
@@ -392,15 +419,15 @@ def _parse_source(
         failure_values = _header_values(message, "X-Mneme-Synthetic-Failure")
         if failure_values and failure_values[0].strip().lower() == "parser":
             raise ControlledParserFailure("synthetic parser fault injection")
-        defects = _defect_names(message)
-        fatal = [name for name in defects if name in FATAL_DEFECTS]
-        if fatal:
-            raise ControlledParserFailure("fatal parser defect: " + ",".join(fatal))
         depth = _mime_depth(message)
         if depth > MAX_MIME_DEPTH:
             raise ControlledParserFailure(
                 f"MIME depth {depth} exceeds limit {MAX_MIME_DEPTH}"
             )
+        defects = _defect_names(message)
+        fatal = [name for name in defects if name in FATAL_DEFECTS]
+        if fatal:
+            raise ControlledParserFailure("fatal parser defect: " + ",".join(fatal))
 
         warnings: List[str] = []
         fields: Dict[str, str | None] = {}
@@ -462,7 +489,7 @@ def _parse_source(
                 if original_filename and safe_name != original_filename:
                     warnings.append("unsafe-attachment-name")
                 attachment_names.append(safe_name.casefold())
-                guessed_type = mimetypes.guess_type(safe_name)[0]
+                guessed_type = _pinned_attachment_type(safe_name)
                 if guessed_type and guessed_type != content_type:
                     warnings.append("attachment-content-type-mismatch")
                 relative_path = f"attachments/{item['id']}/part-{locator.replace('.', '-')}.bin"
@@ -704,8 +731,38 @@ def _part_by_locator(message: Message, locator: str) -> Message:
         raise ScopeError(f"MIME locator does not exist: {locator}") from error
 
 
-def display_source(archive_root: Path, citation: str) -> Dict[str, Any]:
+def _indexed_occurrence(
+    derived_root: Path, source_id: str, source_sha256: str, locator: str
+) -> Dict[str, Any]:
+    index = _load_json(derived_root / "index.json")
+    term_map = index.get("terms")
+    if not isinstance(term_map, dict):
+        raise IntegrityError("index term map is missing")
+    matches: Dict[Tuple[str, str], Dict[str, Any]] = {}
+    for rows in term_map.values():
+        if not isinstance(rows, list):
+            raise IntegrityError("index occurrence list is malformed")
+        for occurrence in rows:
+            if (
+                isinstance(occurrence, dict)
+                and occurrence.get("source_id") == source_id
+                and occurrence.get("source_sha256") == source_sha256
+                and occurrence.get("locator") == locator
+                and isinstance(occurrence.get("field"), str)
+                and isinstance(occurrence.get("text"), str)
+            ):
+                key = (occurrence["field"], occurrence["text"])
+                matches[key] = occurrence
+    if len(matches) != 1:
+        raise IntegrityError("citation is not bound to one verified index occurrence")
+    return next(iter(matches.values()))
+
+
+def display_source(
+    archive_root: Path, derived_root: Path, citation: str
+) -> Dict[str, Any]:
     manifest = verify_archive(archive_root)
+    verify_derived(archive_root, derived_root)
     match = CITATION_PATTERN.fullmatch(citation)
     if match is None:
         raise ScopeError("citation format is unsupported")
@@ -720,21 +777,38 @@ def display_source(archive_root: Path, citation: str) -> Dict[str, Any]:
     message = BytesParser(policy=policy.default).parsebytes(raw)
     locator = match.group("locator")
     if locator.startswith("header:"):
-        _, header_name, ordinal_text = locator.split(":")
+        components = locator.split(":")
+        if len(components) != 3 or not components[2].isdigit():
+            raise ScopeError("header citation locator is malformed")
+        _, header_name, ordinal_text = components
+        occurrence = _indexed_occurrence(
+            derived_root, source_id, item["sha256"], locator
+        )
         values = _header_values(message, header_name)
         ordinal = int(ordinal_text)
         if ordinal < 1 or ordinal > len(values):
             raise ScopeError("header citation ordinal is outside the source")
-        displayed = html.escape(values[ordinal - 1], quote=True)
+        source_text = _derived_header_value(
+            message, header_name, values[ordinal - 1]
+        )
+        if occurrence["text"] != source_text:
+            raise IntegrityError("indexed header text differs from the source")
+        displayed = html.escape(source_text, quote=True)
     elif locator.startswith("mime:"):
+        occurrence = _indexed_occurrence(
+            derived_root, source_id, item["sha256"], locator
+        )
         part_locator = locator.removeprefix("mime:")
         part = _part_by_locator(message, part_locator)
         payload = _decode_payload(part)
         warnings: List[str] = []
         if part.get_content_maintype() == "text":
-            displayed = html.escape(_decode_text(part, payload, warnings), quote=True)
+            source_text = _decode_text(part, payload, warnings)
+            if occurrence["text"] != source_text:
+                raise IntegrityError("indexed MIME text differs from the source")
+            displayed = html.escape(source_text, quote=True)
         else:
-            displayed = f"[binary MIME part: {len(payload)} bytes; sha256={hashlib.sha256(payload).hexdigest()}]"
+            raise IntegrityError("indexed citation refers to a non-text MIME part")
     else:
         raise ScopeError("citation locator type is unsupported")
     return {
@@ -835,7 +909,7 @@ def run_experiment(
     if not find_before["results"]:
         raise IntegrityError("reviewed query unexpectedly returned no result")
     first_citation = find_before["results"][0]["citations"][0]["citation"]
-    source_display = display_source(archive, first_citation)
+    source_display = display_source(archive, derived_a, first_citation)
 
     export_manifest = export_bundle(archive, derived_a, export_root, recorded_at)
     restored = restore_bundle(export_root, restore_root)

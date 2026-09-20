@@ -74,6 +74,25 @@ func TestSingleRecordAndHeadVariants(t *testing.T) {
 	})
 }
 
+func TestHeadSourceAndSignedNoteHashesRemainPaired(t *testing.T) {
+	responses := []parsedResponse{
+		syntheticParsedResponse("L10", 1, 2, "paired-head"),
+		syntheticParsedResponse("L02", 0, 2, "paired-head"),
+	}
+	responses[0].SignedNoteSHA256 = "0000"
+	responses[1].SignedNoteSHA256 = "ffff"
+	heads, err := buildHeads(responses, requiredMaxHeads)
+	if err != nil {
+		t.Fatalf("build paired head: %v", err)
+	}
+	if len(heads) != 1 {
+		t.Fatalf("paired responses produced %d heads, want 1", len(heads))
+	}
+	if strings.Join(heads[0].SourceInputIDs, ",") != "L02,L10" || strings.Join(heads[0].SignedNoteHashes, ",") != "ffff,0000" {
+		t.Fatalf("source inputs and signed-note hashes lost pairing: %#v %#v", heads[0].SourceInputIDs, heads[0].SignedNoteHashes)
+	}
+}
+
 func TestOperationClosureAndOrderIndependence(t *testing.T) {
 	requireSyntheticCase(t, "SYN-MULTI-SIZE-HEADS")
 	base := []parsedResponse{

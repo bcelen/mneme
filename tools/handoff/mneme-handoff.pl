@@ -1026,6 +1026,12 @@ sub _validate_git_arguments {
     return 1;
 }
 
+sub decode_git_wait_status {
+    my ($wait_status) = @_;
+    _fail('E_GIT_SIGNAL', 'git child terminated by signal') if ($wait_status & 127) != 0;
+    return $wait_status >> 8;
+}
+
 sub run_git_raw {
     my ($repo_root, $subcommand, $arguments, $stdin_bytes) = @_;
     my %allowed = map { $_ => 1 } qw(rev-parse symbolic-ref status ls-files check-ignore);
@@ -1085,8 +1091,9 @@ sub run_git_raw {
             }
         }
     }
-    waitpid($pid, 0);
-    my $status = $? >> 8;
+    my $waited = waitpid($pid, 0);
+    _fail('E_GIT_WAIT', 'git child wait failed') if $waited != $pid;
+    my $status = decode_git_wait_status($?);
     _fail('E_LIMIT_GIT_OUTPUT', 'git output exceeded limit') if $overflow;
     return {
         status => $status,

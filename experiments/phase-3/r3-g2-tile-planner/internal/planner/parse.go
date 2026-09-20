@@ -202,7 +202,10 @@ func parseResponse(row inputRow, body []byte) (parsedResponse, error) {
 	if err != nil {
 		return parsedResponse{}, fmt.Errorf("parse unverified tree text: %w", err)
 	}
-	if tree.N < 1 || recordID >= tree.N {
+	if tree.N < 1 || tree.N > maxTreeSize {
+		return parsedResponse{}, fmt.Errorf("unverified tree size %d is outside 1..%d", tree.N, maxTreeSize)
+	}
+	if recordID >= tree.N {
 		return parsedResponse{}, fmt.Errorf("record ID %d is outside own unverified tree size %d", recordID, tree.N)
 	}
 	recordDigest := sha256.Sum256(recordText)
@@ -212,7 +215,7 @@ func parseResponse(row inputRow, body []byte) (parsedResponse, error) {
 		Input:               row,
 		RecordID:            recordID,
 		RecordSpanStart:     len(canonicalPrefix),
-		RecordSpanEnd:       recordEnd,
+		RecordSpanEnd:       len(canonicalPrefix) + len(recordText),
 		RecordTextSHA256:    hex.EncodeToString(recordDigest[:]),
 		SignedNoteSpanStart: recordEnd,
 		SignedNoteSpanEnd:   len(body),

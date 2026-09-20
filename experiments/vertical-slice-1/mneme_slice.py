@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Mapping, Sequence
 
 TOOL_NAME = "mneme-synthetic-vertical-slice"
 TOOL_VERSION = "1"
-PROCESSING_RULE = "plain-text-eml-v1"
+PROCESSING_RULE = "plain-text-eml-v2"
 MAX_SOURCE_BYTES = 64 * 1024
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+(?:[-'][a-z0-9]+)*")
 CITATION_PATTERN = re.compile(
@@ -70,9 +70,12 @@ def _atomic_write(path: Path, data: bytes, mode: int = 0o600) -> None:
         raise
 
 
+def _canonical_json_bytes(value: Mapping[str, Any]) -> bytes:
+    return (json.dumps(value, indent=2, sort_keys=True) + "\n").encode("utf-8")
+
+
 def _write_json(path: Path, value: Mapping[str, Any], mode: int = 0o600) -> None:
-    payload = (json.dumps(value, indent=2, sort_keys=True) + "\n").encode("utf-8")
-    _atomic_write(path, payload, mode=mode)
+    _atomic_write(path, _canonical_json_bytes(value), mode=mode)
 
 
 def _load_json(path: Path) -> Dict[str, Any]:
@@ -237,17 +240,7 @@ def _citation(source_id: str, digest: str, start: int, end: int) -> str:
     return f"mneme-source:{source_id}@sha256:{digest}#L{start}-L{end}"
 
 
-def build_derived(archive_root: Path, derived_root: Path, recorded_at: str) -> Dict[str, Any]:
-    """Build disposable metadata and an index after archive verification."""
-
-    manifest = verify_archive(archive_root)
-    if derived_root.exists():
-        raise ScopeError(f"derived root already exists: {derived_root}")
-    item = manifest["source_items"][0]
-    preserved_path = _contained_member(archive_root, item["relative_path"])
-    raw = preserved_path.read_bytes()
-    original_digest = hashlib.sha256(raw).hexdigest()
-
+def _source_view(raw: bytes) -> Dict[str, Any]:
     message = BytesParser(policy=policy.default).parsebytes(raw)
     if message.is_multipart() or message.get_content_type() != "text/plain":
         raise ScopeError("the first slice accepts one non-multipart text/plain EML only")
@@ -286,25 +279,18 @@ def build_derived(archive_root: Path, derived_root: Path, recorded_at: str) -> D
         except (LookupError, UnicodeDecodeError) as error:
             raise ScopeError(f"body cannot be decoded as {charset}: {error}") from error
         body_lines.append({"line": index, "text": text})
-
-    record: Dict[str, Any] = {
-        "generation": PROCESSING_RULE,
-        "source_id": item["id"],
-        "source_sha256": item["sha256"],
+    return {
+        "body_lines": body_lines,
+        "charset": charset,
         "fields": fields,
         "field_sources": field_sources,
-        "body_lines": body_lines,
-        "provenance": {
-            "event": "derive",
-            "event_id": f"prov-derive-{item['sha256'][:24]}",
-            "input_event_id": item["provenance"]["event_id"],
-            "recorded_at": recorded_at,
-            "rule": PROCESSING_RULE,
-            "tool": {"name": TOOL_NAME, "version": TOOL_VERSION},
-        },
     }
 
+
+def _term_map(view: Mapping[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
     occurrences: Dict[str, List[Dict[str, Any]]] = {}
+    fields = view["fields"]
+    field_sources = view["field_sources"]
     for field_name in ("from", "to", "date", "subject"):
         locator = field_sources[field_name]
         occurrence = {
@@ -315,7 +301,7 @@ def build_derived(archive_root: Path, derived_root: Path, recorded_at: str) -> D
         }
         for token in sorted(set(_normalize_tokens(fields[field_name]))):
             occurrences.setdefault(token, []).append(occurrence)
-    for body_line in body_lines:
+    for body_line in view["body_lines"]:
         occurrence = {
             "field": "body",
             "line_start": body_line["line"],
@@ -324,35 +310,145 @@ def build_derived(archive_root: Path, derived_root: Path, recorded_at: str) -> D
         }
         for token in sorted(set(_normalize_tokens(body_line["text"]))):
             occurrences.setdefault(token, []).append(occurrence)
-
-    for token_occurrences in occurrences.values():
-        token_occurrences.sort(
+    for rows in occurrences.values():
+        rows.sort(
             key=lambda value: (
                 value["line_start"], value["line_end"], value["field"], value["text"]
             )
         )
+    return {token: occurrences[token] for token in sorted(occurrences)}
+
+
+def build_derived(archive_root: Path, derived_root: Path, recorded_at: str) -> Dict[str, Any]:
+    """Build disposable metadata and an index after archive verification."""
+
+    manifest = verify_archive(archive_root)
+    if derived_root.exists():
+        raise ScopeError(f"derived root already exists: {derived_root}")
+    item = manifest["source_items"][0]
+    preserved_path = _contained_member(archive_root, item["relative_path"])
+    raw = preserved_path.read_bytes()
+    original_digest = hashlib.sha256(raw).hexdigest()
+    view = _source_view(raw)
+
+    record: Dict[str, Any] = {
+        "body_lines": view["body_lines"],
+        "charset": view["charset"],
+        "fields": view["fields"],
+        "field_sources": view["field_sources"],
+        "generation": PROCESSING_RULE,
+        "source_id": item["id"],
+        "source_sha256": item["sha256"],
+        "provenance": {
+            "event": "derive",
+            "event_id": f"prov-derive-{item['sha256'][:24]}",
+            "input_event_id": item["provenance"]["event_id"],
+            "recorded_at": recorded_at,
+            "rule": PROCESSING_RULE,
+            "tool": {"name": TOOL_NAME, "version": TOOL_VERSION},
+        },
+    }
     index: Dict[str, Any] = {
         "generation": PROCESSING_RULE,
         "normalization": "Unicode NFKC, casefold, ASCII alphanumeric/hyphen/apostrophe tokens",
         "source_id": item["id"],
         "source_sha256": item["sha256"],
-        "terms": {token: occurrences[token] for token in sorted(occurrences)},
+        "terms": _term_map(view),
     }
 
-    derived_root.mkdir(parents=True, mode=0o700)
-    _write_json(derived_root / "record.json", record)
-    _write_json(derived_root / "index.json", index)
     if sha256_path(preserved_path) != original_digest:
         raise IntegrityError("source changed during derivation")
-    return {"record": record, "index": index}
+    record_bytes = _canonical_json_bytes(record)
+    index_bytes = _canonical_json_bytes(index)
+    derived_manifest: Dict[str, Any] = {
+        "derived_manifest_version": 1,
+        "generation": PROCESSING_RULE,
+        "members": {
+            "index.json": {
+                "byte_count": len(index_bytes),
+                "sha256": hashlib.sha256(index_bytes).hexdigest(),
+            },
+            "record.json": {
+                "byte_count": len(record_bytes),
+                "sha256": hashlib.sha256(record_bytes).hexdigest(),
+            },
+        },
+        "source_manifest_sha256": sha256_path(archive_root / "manifest.json"),
+    }
+    derived_root.mkdir(parents=True, mode=0o700)
+    _atomic_write(derived_root / "record.json", record_bytes)
+    _atomic_write(derived_root / "index.json", index_bytes)
+    _write_json(derived_root / "derived-manifest.json", derived_manifest)
+    verify_derived(archive_root, derived_root)
+    return {"derived_manifest": derived_manifest, "record": record, "index": index}
+
+
+def verify_derived(archive_root: Path, derived_root: Path) -> Dict[str, Any]:
+    manifest = verify_archive(archive_root)
+    if derived_root.is_symlink() or not derived_root.is_dir():
+        raise IntegrityError("derived root must be a non-symlink directory")
+    expected_paths = {"derived-manifest.json", "index.json", "record.json"}
+    actual_paths = set()
+    for candidate in derived_root.iterdir():
+        if candidate.is_symlink() or not candidate.is_file():
+            raise IntegrityError("derived state contains an unsafe member")
+        actual_paths.add(candidate.name)
+    if actual_paths != expected_paths:
+        raise IntegrityError("derived state has missing or extra members")
+
+    derived_manifest = _load_json(derived_root / "derived-manifest.json")
+    if (
+        derived_manifest.get("derived_manifest_version") != 1
+        or derived_manifest.get("generation") != PROCESSING_RULE
+        or derived_manifest.get("source_manifest_sha256")
+        != sha256_path(archive_root / "manifest.json")
+    ):
+        raise IntegrityError("derived manifest is stale or refers to another source")
+    members = derived_manifest.get("members")
+    if not isinstance(members, dict) or set(members) != {"index.json", "record.json"}:
+        raise IntegrityError("derived manifest member map is incomplete")
+    for name in sorted(members):
+        member = members[name]
+        path = derived_root / name
+        if (
+            not isinstance(member, dict)
+            or member.get("byte_count") != path.stat().st_size
+            or member.get("sha256") != sha256_path(path)
+        ):
+            raise IntegrityError("derived member hash or size differs from its manifest")
+
+    item = manifest["source_items"][0]
+    record = _load_json(derived_root / "record.json")
+    index = _load_json(derived_root / "index.json")
+    preserved_path = _contained_member(archive_root, item["relative_path"])
+    view = _source_view(preserved_path.read_bytes())
+    if (
+        record.get("generation") != PROCESSING_RULE
+        or record.get("source_id") != item["id"]
+        or record.get("source_sha256") != item["sha256"]
+        or record.get("charset") != view["charset"]
+        or record.get("fields") != view["fields"]
+        or record.get("field_sources") != view["field_sources"]
+        or record.get("body_lines") != view["body_lines"]
+    ):
+        raise IntegrityError("derived record differs from verified source text")
+    if (
+        index.get("generation") != PROCESSING_RULE
+        or index.get("source_id") != item["id"]
+        or index.get("source_sha256") != item["sha256"]
+        or index.get("terms") != _term_map(view)
+    ):
+        raise IntegrityError("derived index differs from verified source text")
+    return {"derived_manifest": derived_manifest, "index": index, "record": record}
 
 
 def deterministic_find(archive_root: Path, derived_root: Path, query: str) -> Dict[str, Any]:
     """Return stable results only when all normalized query terms are present."""
 
     manifest = verify_archive(archive_root)
-    record = _load_json(derived_root / "record.json")
-    index = _load_json(derived_root / "index.json")
+    verified = verify_derived(archive_root, derived_root)
+    record = verified["record"]
+    index = verified["index"]
     item = manifest["source_items"][0]
     for value in (record, index):
         if value.get("generation") != PROCESSING_RULE:
@@ -398,10 +494,13 @@ def deterministic_find(archive_root: Path, derived_root: Path, query: str) -> Di
     return {"normalized_terms": terms, "query": query, "results": [result]}
 
 
-def display_source(archive_root: Path, citation: str) -> Dict[str, Any]:
+def display_source(
+    archive_root: Path, derived_root: Path, citation: str
+) -> Dict[str, Any]:
     """Resolve a citation to an inert text view of verified preserved bytes."""
 
     manifest = verify_archive(archive_root)
+    verified = verify_derived(archive_root, derived_root)
     match = CITATION_PATTERN.fullmatch(citation)
     if match is None:
         raise ScopeError("citation has an unsupported format")
@@ -415,10 +514,34 @@ def display_source(archive_root: Path, citation: str) -> Dict[str, Any]:
     raw_lines = preserved_path.read_bytes().splitlines()
     if start > end or end > len(raw_lines):
         raise ScopeError("citation line range is outside the preserved source")
-    lines = [
-        {"line": number, "text": raw_lines[number - 1].decode("utf-8", errors="replace")}
-        for number in range(start, end + 1)
-    ]
+    matches: Dict[tuple, Dict[str, Any]] = {}
+    for rows in verified["index"]["terms"].values():
+        for occurrence in rows:
+            if occurrence["line_start"] == start and occurrence["line_end"] == end:
+                key = (occurrence["field"], occurrence["text"])
+                matches[key] = occurrence
+    if len(matches) != 1:
+        raise IntegrityError("citation is not bound to one verified source occurrence")
+    occurrence = next(iter(matches.values()))
+    if occurrence["field"] == "body":
+        try:
+            lines = [
+                {
+                    "line": number,
+                    "text": raw_lines[number - 1].decode(
+                        verified["record"]["charset"], errors="strict"
+                    ),
+                }
+                for number in range(start, end + 1)
+            ]
+        except (LookupError, UnicodeDecodeError) as error:
+            raise IntegrityError("cited source text no longer decodes as indexed") from error
+        if len(lines) != 1 or lines[0]["text"] != occurrence["text"]:
+            raise IntegrityError("cited source text differs from indexed text")
+    else:
+        if verified["record"]["fields"].get(occurrence["field"]) != occurrence["text"]:
+            raise IntegrityError("cited header text differs from indexed text")
+        lines = [{"line": start, "text": occurrence["text"]}]
     return {
         "citation": citation,
         "display_mode": "inert-text-no-html-no-fetch",
@@ -448,9 +571,14 @@ def run_slice(fixture: Path, workspace: Path, query: str, recorded_at: str) -> D
     find_result = deterministic_find(archive_root, derived_root, query)
     first_result = find_result["results"][0] if find_result["results"] else None
     first_citation = first_result["citations"][0]["citation"] if first_result else None
-    source_display = display_source(archive_root, first_citation) if first_citation else None
+    source_display = (
+        display_source(archive_root, derived_root, first_citation)
+        if first_citation
+        else None
+    )
     return {
         "derived_hashes": {
+            "derived-manifest.json": sha256_path(derived_root / "derived-manifest.json"),
             "index.json": sha256_path(derived_root / "index.json"),
             "record.json": sha256_path(derived_root / "record.json"),
         },

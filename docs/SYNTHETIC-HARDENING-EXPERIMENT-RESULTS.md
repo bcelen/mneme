@@ -114,14 +114,41 @@ The final captured JSON result was 7,777 bytes with SHA-256 `adb21c57f6f0c049414
 
 | Path | Bytes | SHA-256 |
 |---|---:|---|
-| `experiments/synthetic-hardening-1/README.md` | 2,197 | `6d551966a9f2c7d5862415b49da5a0e4f9461f84735d3b86479a3a7e9c2ecad3` |
+| `experiments/synthetic-hardening-1/README.md` | 4,802 | `d4fcfdc3a7e613498d422522aba326f0c9735c941ecab046496e872f70e51b08` |
 | `experiments/synthetic-hardening-1/fixtures.py` | 13,647 | `54fe9273dcdba9215842cbe787e8ef3fb4873e38c00a5503d7c1e6d32caad500` |
 | `experiments/synthetic-hardening-1/fixture-catalog.json` | 4,891 | `3cc47fc9ea6301a57f482e02a3c79e1b9cc0133fcc261953624b9092409b5ef3` |
-| `experiments/synthetic-hardening-1/hardening.py` | 36,618 | `1ee69509a135c1fdaa6eb228301353c62448ff139eead1166e4e0b71c3e31a19` |
-| `experiments/synthetic-hardening-1/tests/test_hardening.py` | 11,245 | `e26bb95d7502f06ed829a6026fcb8c4dadaaa30aea13e0fa1a6fc39aaca3efec` |
+| `experiments/synthetic-hardening-1/hardening.py` | 39,764 | `d05ec6701a4190e81e549de6bb3d58be0d92002bcecba238816fd4aa2b047fc3` |
+| `experiments/synthetic-hardening-1/isolation.py` | 10,421 | `0094db855bef743e666ba39125f07b9ba86048cd1199f93f542e2870294a1eed` |
+| `experiments/synthetic-hardening-1/tests/test_hardening.py` | 15,181 | `e2054b70b27de9231c9fc5cc8bd62ee605a10b61f4d8a884671883885b7aa781` |
+| `experiments/synthetic-hardening-1/tests/test_isolation.py` | 8,535 | `eaf418e1d6b3c712312820d0f2ebf4d5ac03542b7c34cd658b7bed78db2e80c6` |
+
+## Independent-review correction pass
+
+**Correction status:** Exercised locally and uncommitted; awaiting review.
+**Correction date:** 2026-09-20.
+
+The correction pass ran after all listed code changes:
+
+- Python hardening and isolation: 22 tests passed in 7.246 seconds;
+- Python vertical slice: 10 tests passed in 0.085 seconds;
+- Go planner: all packages passed with Go 1.27.1 from a disposable offline copy of the retained verified archive;
+- Perl handoff utility: all 38 synthetic cases passed, including signal-killed and ordinary Git child statuses; and
+- the disposable Go toolchain, source copy, caches, and workspace were removed after the run.
+
+| Corrected path | Bytes | SHA-256 |
+|---|---:|---|
+| `experiments/vertical-slice-1/mneme_slice.py` | 25,132 | `28e18b2d9dc93a019e07918b9ffdc69e2a88c25b9330c834a631137c5da5dd91` |
+| `experiments/vertical-slice-1/tests/test_vertical_slice.py` | 9,883 | `d056f356d4ccebcfc9bbd64c5d83e7bc0bef7c54d4a55ed68e26718e312aeb3a` |
+| `experiments/phase-3/r3-g2-tile-planner/internal/planner/model.go` | 3,146 | `25207b071f9855a006bb6a986ff01db3f5a7cf685cbb92a27e2e5e7c84a834af` |
+| `experiments/phase-3/r3-g2-tile-planner/internal/planner/parse.go` | 12,303 | `23221d69f4ce13abcd4abe411030b431176995badc9f0f6aa6a5360a886fc855` |
+| `experiments/phase-3/r3-g2-tile-planner/internal/planner/parse_test.go` | 7,783 | `224543b9863d280a3b8c2b71b60b8b1a1383547611c094ec93b63e31860950d6` |
+| `experiments/phase-3/r3-g2-tile-planner/internal/planner/plan.go` | 13,100 | `82392c92bc36b0a16c2d086043f6db6cb560fea23309b78ea1f5b37a601a377e` |
+| `experiments/phase-3/r3-g2-tile-planner/internal/planner/plan_test.go` | 10,055 | `f2619bbfa542a73c285cd6357dab7431ae01e9e9ba0b7ba39b3355bc4d40237e` |
+| `tools/handoff/mneme-handoff.pl` | 104,847 | `bbe7ed8b968108e1e7045fc93fa36921a1da0cbdaf520c2783483208514b6a1c` |
+| `tools/handoff/t/handoff.t` | 18,549 | `32275242d71e6f8bfd9b29eec2eb9fd83d49cd8ef47d0b09d1bb54c21c539418` |
 
 ## Limitations
 
-This result is limited to fourteen small synthetic EML occurrences and the tested standard-library parser behavior. It does not establish parser process isolation, operating-system network denial, CPU or memory timeouts, decompression limits, browser rendering, safe opening of attachments, malware detection, encryption, backup custody, versioned migration, provider exports, MBOX, Eudora, Gmail/Workspace, Outlook, production scale, mobile UX, AI behavior, deployment, or a production stack.
+This result remains limited to small synthetic EML inputs and the recorded local runtimes. It establishes parser process separation and the tested CPU, wall-time, and memory-limit behavior, but not a production security sandbox or containment after parser compromise. The process channel still uses trusted local Python serialization. It does not establish operating-system network denial, decompression limits, browser rendering, safe opening of attachments, malware detection, encryption, backup custody, versioned migration, provider exports, MBOX, Eudora, Gmail/Workspace, Outlook, production scale, mobile UX, AI behavior, deployment, or a production stack.
 
-No account, network access, real correspondence, cloud AI, external dependency, container, database, persistent service, handoff automation, or production configuration was used. The accepted commit contains only the six reviewed hardening files, and nothing was pushed.
+No account, network access, real correspondence, cloud AI, container, database, persistent service, packet store, or production configuration was used. The correction pass remains uncommitted, and nothing was pushed.

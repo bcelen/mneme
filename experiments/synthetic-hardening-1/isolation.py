@@ -23,6 +23,7 @@ CPU_LIMIT_SECONDS = 1
 MEMORY_LIMIT_BYTES = 64 * 1024 * 1024
 FILE_LIMIT_BYTES = 1024 * 1024
 OPEN_FILE_LIMIT = 32
+PROCESS_START_METHOD = "spawn"
 
 LIMIT_PROFILE: Dict[str, Any] = {
     "cpu_seconds": CPU_LIMIT_SECONDS,
@@ -57,6 +58,7 @@ def _marker() -> Dict[str, Any]:
     return {
         "limits": dict(LIMIT_PROFILE),
         "mode": "one-source-per-process",
+        "process_start_method": PROCESS_START_METHOD,
     }
 
 
@@ -247,7 +249,7 @@ def run_isolated_parse(
     with tempfile.TemporaryDirectory(prefix="mneme-parser-isolation-") as directory:
         os.chmod(directory, 0o700)
         temporary_root_text = directory
-        context = multiprocessing.get_context("fork")
+        context = multiprocessing.get_context(PROCESS_START_METHOD)
         receiver, sender = context.Pipe(duplex=False)
         process = context.Process(
             target=_worker,

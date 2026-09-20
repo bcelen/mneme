@@ -10,6 +10,7 @@ const (
 	requiredMaxOperations    = 400
 	requiredMaxLiteralPaths  = 4096
 	maxLookupBytes           = 1024
+	maxTreeSize              = int64(1<<62 - 1)
 	planSentinelText         = "MNEME_PLAN_ONLY_TILE_CAPTURE"
 	structuralTrustLabel     = "UNVERIFIED_STRUCTURAL_INPUT"
 	structuralPassConclusion = "Structurally sufficient for literal tile planning"

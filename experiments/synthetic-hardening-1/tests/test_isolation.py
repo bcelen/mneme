@@ -48,6 +48,17 @@ def controlled_message(mode: str, body: bytes = b"synthetic body\n") -> bytes:
     )
 
 
+def plain_message(label: str) -> bytes:
+    return (
+        b"From: isolation@example.test\n"
+        b"To: archive@example.test\n"
+        b"Date: Sat, 20 Sep 2026 00:00:00 +0000\n"
+        b"Message-ID: <" + label.encode("ascii") + b"@example.test>\n"
+        b"Subject: Synthetic isolation baseline\n"
+        b"Content-Type: text/plain; charset=utf-8\n\nsynthetic body\n"
+    )
+
+
 class ParserIsolationTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory(prefix="mneme-isolation-test-")
@@ -112,11 +123,35 @@ class ParserIsolationTests(unittest.TestCase):
             result.evidence.termination,
             {"memory-limit", "completed"},
         )
-        self.assertGreater(
-            result.evidence.peak_resident_bytes, isolation.MEMORY_LIMIT_BYTES
-        )
+        if result.evidence.termination == "memory-limit":
+            self.assertGreater(
+                result.evidence.peak_resident_bytes, isolation.MEMORY_LIMIT_BYTES
+            )
+        else:
+            self.assertEqual("completed", result.evidence.termination)
+            self.assertLess(
+                result.evidence.peak_resident_bytes, isolation.MEMORY_LIMIT_BYTES
+            )
         self.assertTrue(result.evidence.temporary_root_removed)
         self.assertFalse(Path(result.evidence.temporary_root).exists())
+
+    def test_worker_memory_verdict_is_independent_of_parent_allocation(self) -> None:
+        raw = plain_message("parent-memory-independent")
+        item = synthetic_item("EML-904", raw)
+        baseline = isolation.run_isolated_parse(item, raw, RECORDED_AT)
+        parent_allocation = bytearray(90 * 1024 * 1024)
+        for offset in range(0, len(parent_allocation), 4096):
+            parent_allocation[offset] = 1
+        after_allocation = isolation.run_isolated_parse(item, raw, RECORDED_AT)
+        self.assertEqual("indexed", baseline.record["status"])
+        self.assertEqual(baseline.record, after_allocation.record)
+        self.assertEqual(
+            "spawn", after_allocation.record["isolation"]["process_start_method"]
+        )
+        self.assertLess(
+            after_allocation.evidence.peak_resident_bytes,
+            isolation.MEMORY_LIMIT_BYTES,
+        )
 
     def test_excessive_depth_parser_failure_and_rebuild_are_deterministic(self) -> None:
         incoming = fixtures.materialize(self.root / "incoming")
