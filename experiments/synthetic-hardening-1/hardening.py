@@ -26,7 +26,7 @@ from email.message import Message
 from email.parser import BytesParser
 from email.utils import parsedate_to_datetime
 from pathlib import Path, PurePosixPath
-from typing import Any, Dict, Iterator, List, Mapping, MutableMapping, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterator, List, Mapping, MutableMapping, Sequence, Tuple
 
 import fixtures
 
@@ -62,6 +62,12 @@ class ScopeError(ExperimentError):
 
 class ControlledParserFailure(ExperimentError):
     """A synthetic fixture triggered a controlled parser failure."""
+
+
+ParseSource = Callable[
+    [Mapping[str, Any], bytes, str],
+    Tuple[Dict[str, Any], List[Dict[str, Any]], Dict[str, bytes]],
+]
 
 
 def sha256_path(path: Path) -> str:
@@ -544,11 +550,15 @@ def _duplicate_relations(records: Sequence[Mapping[str, Any]]) -> Dict[str, Any]
 
 
 def build_derived(
-    archive_root: Path, derived_root: Path, recorded_at: str
+    archive_root: Path,
+    derived_root: Path,
+    recorded_at: str,
+    parse_source: ParseSource | None = None,
 ) -> Dict[str, Any]:
     manifest = verify_archive(archive_root)
     if derived_root.exists():
         raise ScopeError(f"derived root already exists: {derived_root}")
+    source_parser = parse_source or _parse_source
 
     records: List[Dict[str, Any]] = []
     occurrences: MutableMapping[str, List[Dict[str, Any]]] = defaultdict(list)
@@ -557,7 +567,9 @@ def build_derived(
         preserved_path = _contained(archive_root, item["relative_path"])
         raw = preserved_path.read_bytes()
         before = hashlib.sha256(raw).hexdigest()
-        record, source_occurrences, pending_artifacts = _parse_source(item, raw, recorded_at)
+        record, source_occurrences, pending_artifacts = source_parser(
+            item, raw, recorded_at
+        )
         if sha256_path(preserved_path) != before:
             raise IntegrityError(f"source changed during parsing: {item['id']}")
         records.append(record)

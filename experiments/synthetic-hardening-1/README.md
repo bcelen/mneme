@@ -2,6 +2,8 @@
 
 This experiment extends the accepted first vertical slice across multiple EML encodings, Unicode and malformed headers, duplicate occurrences, attachments, hostile HTML, controlled parser failures, deterministic rebuild, and plain-directory export/restore.
 
+The follow-on isolation harness runs each parser invocation in a fresh child process connected by a standard-library pipe. It applies a wall-clock timeout, POSIX CPU/file-size/core-dump/file-descriptor limits, and a parent-enforced resident-memory ceiling; `RLIMIT_DATA` applies the same memory ceiling where the host supports it. Oversized inputs fail before launch; time, memory, parser, and MIME-depth failures become deterministic quarantine records with no trusted index entries or derived artifacts. The harness uses a private temporary working directory per invocation and removes it after collecting the result.
+
 It remains an experimental implementation. It does not select a product stack and uses no third-party dependency, account, network service, database, container, model, or persistent process.
 
 ## Runtime identity recorded before implementation
@@ -20,7 +22,9 @@ It remains an experimental implementation. It does not select a product stack an
 - `fixtures.py`: exact synthetic EML byte definitions.
 - `fixture-catalog.json`: fixture identities, hashes, intended coverage, and expected outcomes.
 - `hardening.py`: preservation, derivation, duplicate classification, Find, source display, export, and restore.
+- `isolation.py`: direct child-process parser protocol, resource limits, quarantine mapping, and cleanup evidence.
 - `tests/test_hardening.py`: focused standard-library test suite.
+- `tests/test_isolation.py`: hostile/oversized input, time/memory limit, quarantine, cleanup, and rebuild tests.
 
 Fixture EML files, archives, indexes, attachment derivatives, HTML derivatives, exports, and restores are materialized only beneath a fresh temporary workspace. Python bytecode is disabled for reviewed runs.
 
@@ -35,3 +39,26 @@ PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -B experiments/synthetic-hardening-1/
 ```
 
 The complete run emits JSON evidence. The temporary workspace is disposable and is not part of the repository.
+
+The focused isolation tests use the same runtime and no additional dependency:
+
+```text
+PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -B -m unittest discover -s experiments/synthetic-hardening-1/tests -p 'test_isolation.py' -v
+```
+
+The memory experiment proves enforcement of the configured resident-memory ceiling on the recorded macOS runtime. Other platforms must independently validate their resident-memory observation or `RLIMIT_DATA` behavior. The process boundary is experimental and does not claim a complete production sandbox.
+
+## Accepted follow-on result
+
+- Status: Accepted within the declared local, offline, synthetic-only scope.
+- Review date: `2026-09-20`.
+- Five focused parser-isolation tests passed.
+- Eighteen complete hardening tests passed, comprising the thirteen earlier hardening tests and the five isolation tests.
+- Hostile input ran in a distinct parser process and was quarantined without trusted index entries or artifacts.
+- Input above the 128 KiB source limit was rejected before a parser worker was created.
+- CPU time, wall time, and a 64 MiB memory ceiling were enforced; limit failures were quarantined.
+- Two complete isolated builds produced identical derived files and hashes.
+- Every per-message temporary root was removed, and no bytecode or generated experiment state remained in the repository.
+- macOS rejected a finite `RLIMIT_DATA` value for the recorded Python runtime, so the parent enforced the memory ceiling by observing and terminating on resident memory. `RLIMIT_DATA` remains an additional control where supported.
+
+This result does not establish a production sandbox, choose a stack, or authorize production implementation. The next product decision is the smallest useful Mneme prototype expansion.
