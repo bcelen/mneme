@@ -5,15 +5,15 @@
 
 ## Runtime
 
-- CPython 3.11.15 (`python3`) for the evidence run and all suites; CPython 3.10.20 for a second run of the new suite.
-- Linux container; not yet run with the accepted macOS CPython 3.9.6 runtime.
+- Linux container: CPython 3.11.15 (`python3`) for the evidence run and all suites; CPython 3.10.20 for a second run of the new suite.
+- macOS (2026-09-28): the new suite passed on the accepted runtime, CPython 3.9.6 via `/usr/bin/python3 -B`. The resolved-executable SHA-256 was not re-checked in that run, and the CLI evidence run and hashes below come from the Linux container.
 - Python standard library only; no network access. Socket creation is replaced by a failing test double during ingest tests.
 
 ## Verification
 
 | Suite | Result |
 |---|---|
-| `mneme-local-prototype-2/tests/test_incremental.py` | 16 passed (3.11: 58.4 s; 3.10: 57.9 s) |
+| `mneme-local-prototype-2/tests/test_incremental.py` | 16 passed (macOS 3.9.6: 91.3 s; 3.11: 58.4 s; 3.10: 57.9 s) |
 | `mneme-local-prototype-1/tests/test_mneme.py` | 5 passed, unchanged |
 | `synthetic-hardening-1/tests/test_hardening.py` | 16 passed, unchanged |
 | `synthetic-hardening-1/tests/test_isolation.py` | 6 passed, unchanged |

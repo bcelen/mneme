@@ -42,7 +42,7 @@ Any failure before `CURRENT` is replaced removes the staged or renamed generatio
 ## Runtime
 
 - Standard library only; no network access.
-- Verified here with CPython 3.11.15 and 3.10.20. The accepted prototype-1 evidence used CPython 3.9.6 via `/usr/bin/python3` on macOS. This increment has not yet been run there.
+- The new test suite passed on the accepted macOS runtime, CPython 3.9.6 via `/usr/bin/python3`, and on CPython 3.11.15 and 3.10.20 in a Linux container.
 
 ## Commands
 
