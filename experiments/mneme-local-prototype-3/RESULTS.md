@@ -1,26 +1,26 @@
 # Mneme Local Synthetic Prototype 3 — Results
 
-**Status:** Successful within the declared local, offline, synthetic-only experimental scope; committed locally, not pushed, and awaiting review.
+**Status:** Successful within the declared local, offline, synthetic-only experimental scope; merged to `main` at `739b645`.
 **Run date:** 2026-09-28.
 
 ## Runtime
 
 - Linux container: CPython 3.11.15 (`/usr/bin/python3.11`, SHA-256 `f56a588548dd013906ae1dcd1b6faa417f4e204da634ff354840d9643e78ff9e`) for the evidence run and all suites; CPython 3.10.20 for a second run of the new suite.
-- Not yet run on the accepted macOS CPython 3.9.6 runtime.
+- macOS (reported 2026-09-29): the new suite passed on the accepted runtime, CPython 3.9.6 via `/usr/bin/python3 -B`, in 239.5 s, on commit `739b645` fetched from a verified Git bundle. That run did not print the interpreter version or re-check the resolved-executable SHA-256; the version was confirmed separately on 2026-09-28. The CLI evidence and hashes below come from the Linux container.
 - Python standard library only. Socket creation is replaced by a failing test double during ingest tests.
 
 ## Verification
 
 | Suite | Result |
 |---|---|
-| `mneme-local-prototype-3/tests/test_mbox.py` | 22 passed (3.11: 85.8 s; 3.10: 80.8 s) |
+| `mneme-local-prototype-3/tests/test_mbox.py` | 22 passed (macOS 3.9.6: 239.5 s; 3.11: 85.8 s; 3.10: 80.8 s) |
 | `mneme-local-prototype-2/tests/test_incremental.py` | 16 passed, unchanged |
 | `mneme-local-prototype-1/tests/test_mneme.py` | 5 passed, unchanged |
 | `synthetic-hardening-1/tests/test_hardening.py` | 16 passed, unchanged |
 | `synthetic-hardening-1/tests/test_isolation.py` | 6 passed, unchanged |
 | `vertical-slice-1/tests/test_vertical_slice.py` | 10 passed, unchanged |
-| `tools/handoff/t/handoff.t` | Not run: hard-codes `/Users/bogac/dev/forgejo/mneme/...` paths, which do not exist in this container |
-| `phase-3/r3-g2-tile-planner` (Go) | Not run: see the network incident below |
+| `tools/handoff/t/handoff.t` | Not run: hard-codes `/Users/bogac/dev/forgejo/mneme/...` paths, which do not exist in this container; still outstanding and must be run on macOS |
+| `phase-3/r3-g2-tile-planner` (Go) | Not run: see the network incident below; still outstanding, and any run must set `GOTOOLCHAIN=local` and `GOPROXY=off` |
 
 No parser temporary directory, generated state, or bytecode remained after the runs.
 
