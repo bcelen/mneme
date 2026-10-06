@@ -20,7 +20,8 @@
 | `synthetic-hardening-1/tests/test_hardening.py` | 16 passed, unchanged |
 | `synthetic-hardening-1/tests/test_isolation.py` | 6 passed, unchanged |
 | `vertical-slice-1/tests/test_vertical_slice.py` | 10 passed, unchanged |
-| `tools/handoff/t/handoff.t`, Go planner | Not run; still outstanding, as recorded in prototype 3's results |
+| `tools/handoff/t/handoff.t` | macOS (reported 2026-10-06): 38 `ok`, 0 `not ok`, exit 0; see prototype 3's results |
+| Go planner | Not run; still outstanding, as recorded in prototype 3's results |
 
 Seven deliberate code mutations were each caught and then reverted: ignoring the UTC offset; placing undated occurrences in date ranges; case-sensitive addresses; ignoring the attachment filter; decorating unfiltered output; listing quarantined occurrences; and an exclusive `until` bound.
 

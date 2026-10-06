@@ -19,7 +19,7 @@
 | `synthetic-hardening-1/tests/test_hardening.py` | 16 passed, unchanged |
 | `synthetic-hardening-1/tests/test_isolation.py` | 6 passed, unchanged |
 | `vertical-slice-1/tests/test_vertical_slice.py` | 10 passed, unchanged |
-| `tools/handoff/t/handoff.t` | Not run: hard-codes `/Users/bogac/dev/forgejo/mneme/...` paths, which do not exist in this container; still outstanding and must be run on macOS |
+| `tools/handoff/t/handoff.t` | Not run in the container (hard-coded `/Users/bogac/dev/forgejo/mneme/...` paths). macOS (reported 2026-10-06): `/usr/bin/perl` run from that checkout on `main` exited 0 with 38 `ok` and 0 `not ok`, and left the working tree unchanged; `tools/handoff/` is unchanged since `2b57aa9` |
 | `phase-3/r3-g2-tile-planner` (Go) | Not run: see the network incident below; still outstanding, and any run must set `GOTOOLCHAIN=local` and `GOPROXY=off` |
 
 No parser temporary directory, generated state, or bytecode remained after the runs.
