@@ -5,7 +5,8 @@
 
 ## Runtime
 
-- Linux container: CPython 3.11.15 and 3.10.20. Not yet run on the accepted macOS CPython 3.9.6 runtime.
+- Linux container: CPython 3.11.15 and 3.10.20.
+- macOS (reported 2026-10-06): passed on the accepted runtime, CPython 3.9.6 via `/usr/bin/python3 -B`, on commit `416be0c` fetched from GitHub into a local review branch: 13 tests in 75.7 s.
 - Python standard library only; no network access.
 
 ## Verification

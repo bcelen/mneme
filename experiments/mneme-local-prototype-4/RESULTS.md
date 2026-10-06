@@ -6,14 +6,14 @@
 ## Runtime
 
 - Linux container: CPython 3.11.15 (`/usr/bin/python3.11`, SHA-256 `f56a588548dd013906ae1dcd1b6faa417f4e204da634ff354840d9643e78ff9e`) for the evidence run and all suites; CPython 3.10.20 for a second run of the new suite.
-- Not yet run on the accepted macOS CPython 3.9.6 runtime.
+- macOS (reported 2026-10-06): passed on the accepted runtime, CPython 3.9.6 via `/usr/bin/python3 -B`, on commit `416be0c` fetched from GitHub into a local review branch: 14 tests in 17.0 s.
 - Python standard library only; no network access.
 
 ## Verification
 
 | Suite | Result |
 |---|---|
-| `mneme-local-prototype-4/tests/test_filters.py` | 14 passed (3.11: 9.3 s; 3.10: 9.1 s) |
+| `mneme-local-prototype-4/tests/test_filters.py` | 14 passed (macOS 3.9.6: 17.0 s; 3.11: 9.3 s; 3.10: 9.1 s) |
 | `mneme-local-prototype-3/tests/test_mbox.py` | 22 passed, unchanged |
 | `mneme-local-prototype-2/tests/test_incremental.py` | 16 passed, unchanged |
 | `mneme-local-prototype-1/tests/test_mneme.py` | 5 passed, unchanged |
